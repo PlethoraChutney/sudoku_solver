@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 
+
 def find_missing(input):
     missing_no = []
     for i in range(1,10):
@@ -8,15 +9,24 @@ def find_missing(input):
             missing_no.append(i)
     return missing_no
 
+
 class Sudoku:
 
     def __init__(self, file):
         puzzle = []
-        with open(file) as f:
-            for line in f:
-                puzzle_row = line.replace('X', '0').split()
-                puzzle.append(puzzle_row)
-        self.grid = np.array(puzzle).astype(np.int)
+        try:
+            with open(file) as f:
+                for line in f:
+                    puzzle_row = list(line.replace('X', '0').strip())
+                    puzzle.append(puzzle_row)
+            self.grid = np.array(puzzle).astype(np.int)
+            assert self.grid.shape == (9,9)
+        except AssertionError:
+            print('Sudoku file is not 9x9')
+            sys.exit(1)
+        except ValueError:
+            print('Sudoku may only contain [1-9] or [0|X] for blank')
+            sys.exit(1)
 
         self.regions = []
         self.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
@@ -75,18 +85,21 @@ class Sudoku:
             missing = find_missing(self.rows[i])
             if len(missing) == 1:
                 np.place(self.rows[i], self.rows[i] == 0, missing[0])
+                any_mods = True
             elif len(missing) > 1:
                 print(f'Row {i+1} too complex')
 
             missing = find_missing(self.cols[i])
             if len(missing) == 1:
                 np.place(self.cols[i], self.cols[i] == 0, missing[0])
+                any_mods = True
             elif len(missing) > 1:
                 print(f'Column {i+1} too complex')
 
             missing = find_missing(self.regions[i])
             if len(missing) == 1:
                 np.place(self.regions[i], self.regions[i] == 0, missing[0])
+                any_mods = True
             elif len(missing) > 1:
                 print(f'Region {self.letters[i]} too complex')
 
@@ -97,6 +110,7 @@ class Sudoku:
             self.simple_missing_solve()
         else:
             return any_mods
+
 
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
