@@ -1,32 +1,63 @@
-import numpy as np
 import sys
+import numpy as np
+import math
 
+class Slot:
+    def __init__(self, value, index):
+        self.value = int(value)
+        self.index = index
+        self.row = index[0]
+        self.col = index[1]
+        self.cell = (math.floor(index[0]/3), math.floor(index[1]/3))
 
-def find_missing(input):
-    missing_no = []
-    for i in range(1,10):
-        if i not in input:
-            missing_no.append(i)
-    return missing_no
+    def __repr__(self):
+        return str(self.value)
+
+    def update_possibles(self, grid):
+        row_imposs = []
+        col_imposs = []
+        cell_imposs = []
+        impossibles = []
+        self.possibles = []
+
+        if self.value == 0:
+            for slot in grid:
+                if slot.row == self.row & slot.value != 0:
+                    row_imposs.append(slot.value)
+                if slot.col == self.col & slot.value != 0:
+                    col_imposs.append(slot.value)
+                if slot.cell == self.cell and slot.value != 0:
+                    cell_imposs.append(slot.value)
+            impossibles.extend(row_imposs)
+            impossibles.extend(col_imposs)
+            impossibles.extend(cell_imposs)
+            impossibles = set(impossibles)
+            for i in range(1,10):
+                if i not in impossibles:
+                    self.possibles.append(i)
 
 
 class Sudoku:
 
+    def make_row(self, input, row_num):
+        row = []
+        for i in range(len(input)):
+            row.append(Slot(input[i], (i,row_num)))
+        return row
+
+    def __repr__(self):
+        return '\n' + self.pretty_grid() +\
+                f'\n\nCorrect: {self.solved}, Filled: {self.filled}'
+
     def __init__(self, file):
         puzzle = []
-        try:
-            with open(file) as f:
-                for line in f:
-                    puzzle_row = list(line.replace('X', '0').strip())
-                    puzzle.append(puzzle_row)
-            self.grid = np.array(puzzle).astype(np.int)
-            assert self.grid.shape == (9,9)
-        except AssertionError:
-            print('Sudoku file is not 9x9')
-            sys.exit(1)
-        except ValueError:
-            print('Sudoku may only contain [1-9] or [0|X] for blank')
-            sys.exit(1)
+        with open(file) as f:
+            i = 0
+            for line in f:
+                puzzle_row = list(line.replace('X', '0').strip())
+                puzzle.append(self.make_row(puzzle_row, i))
+                i += 1
+        self.grid = np.array(puzzle)
 
         self.regions = []
         self.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
@@ -39,10 +70,14 @@ class Sudoku:
         self.regions.append(self.grid[6:9, 0:3])
         self.regions.append(self.grid[6:9, 3:6])
         self.regions.append(self.grid[6:9, 6:9])
+        self.cells = []
+        for i in range(3):
+            for j in range(3):
+                self.cells.append((i,j))
         self.rows = [self.grid[x,:] for x in range(9)]
         self.cols = [self.grid[:,x] for x in range(9)]
 
-        self.verify_grid()
+        self.solved = self.verify_grid()
 
     def pretty_grid(self):
         pretty_grid = []
@@ -59,24 +94,57 @@ class Sudoku:
         pretty_grid = '\n'.join(pretty_grid)
         return pretty_grid
 
-    def __repr__(self):
-        return '\n' + self.pretty_grid() +\
-                f'\n\nCorrect: {self.verify_grid()}, Filled: {self.filled}'
-
     def verify_grid(self):
-        if 0 in self.grid:
+        flat_grid = self.grid.flatten()
+
+        if not all(value != 0 for value in flat_grid):
             self.filled = False
             return False
         else:
             self.filled = True
 
-        sums = self.grid.sum(axis = 0).tolist()
-        sums.extend(self.grid.sum(axis = 1).tolist())
-        sums.extend([np.sum(x) for x in self.regions])
-        if not all(x == 45 for x in sums):
-            return False
+        sums = []
+        for i in range(9):
+            row_sum = 0
+            col_sum = 0
+            cell_sum = 0
+
+            for slot in flat_grid:
+                if slot.row == i:
+                    row_sum += slot.value
+                if slot.col == i:
+                    col_sum += slot.value
+                if slot.cell == self.cells[i]:
+                    cell_sum += slot.value
+            sums.extend([row_sum, col_sum, cell_sum])
+        if all(sum == 45 for sum in sums):
+            self.solved = True
         else:
+            self.solved = False
+
+        return self.solved
+
+    def new_simple_solve(self):
+        flat_grid = self.grid.flatten()
+
+        modified = False
+
+        for slot in flat_grid:
+            slot.update_possibles(flat_grid)
+            if len(slot.possibles) == 1:
+                slot.value = slot.possibles[0]
+                modified = True
+
+        if self.verify_grid():
             return True
+        elif modified:
+            self.new_simple_solve()
+        else:
+            return False
+
+
+
+
 
     def simple_missing_solve(self):
 
@@ -114,6 +182,5 @@ class Sudoku:
 
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
-    print(sud)
-    sud.simple_missing_solve()
+    sud.new_simple_solve()
     print(sud)
