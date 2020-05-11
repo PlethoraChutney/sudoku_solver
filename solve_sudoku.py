@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import math
 
+
 class Slot:
     def __init__(self, value, index):
         self.value = int(value)
@@ -17,23 +18,23 @@ class Slot:
         row_imposs = []
         col_imposs = []
         cell_imposs = []
-        impossibles = []
+        self.impossibles = []
         self.possibles = []
 
         if self.value == 0:
             for slot in grid:
-                if slot.row == self.row & slot.value != 0:
+                if slot.row == self.row and slot.value != 0:
                     row_imposs.append(slot.value)
-                if slot.col == self.col & slot.value != 0:
+                if slot.col == self.col and slot.value != 0:
                     col_imposs.append(slot.value)
                 if slot.cell == self.cell and slot.value != 0:
                     cell_imposs.append(slot.value)
-            impossibles.extend(row_imposs)
-            impossibles.extend(col_imposs)
-            impossibles.extend(cell_imposs)
-            impossibles = set(impossibles)
+            self.impossibles.extend(row_imposs)
+            self.impossibles.extend(col_imposs)
+            self.impossibles.extend(cell_imposs)
+            self.impossibles = set(self.impossibles)
             for i in range(1,10):
-                if i not in impossibles:
+                if i not in self.impossibles:
                     self.possibles.append(i)
 
 
@@ -42,7 +43,7 @@ class Sudoku:
     def make_row(self, input, row_num):
         row = []
         for i in range(len(input)):
-            row.append(Slot(input[i], (i,row_num)))
+            row.append(Slot(input[i], (row_num, i)))
         return row
 
     def __repr__(self):
@@ -97,11 +98,11 @@ class Sudoku:
     def verify_grid(self):
         flat_grid = self.grid.flatten()
 
-        if not all(value != 0 for value in flat_grid):
+        if all(slot.value != 0 for slot in flat_grid):
+            self.filled = True
+        else:
             self.filled = False
             return False
-        else:
-            self.filled = True
 
         sums = []
         for i in range(9):
@@ -124,7 +125,7 @@ class Sudoku:
 
         return self.solved
 
-    def new_simple_solve(self):
+    def simple_solve(self):
         flat_grid = self.grid.flatten()
 
         modified = False
@@ -135,52 +136,28 @@ class Sudoku:
                 slot.value = slot.possibles[0]
                 modified = True
 
-        if self.verify_grid():
-            return True
-        elif modified:
-            self.new_simple_solve()
+        return modified
+
+    def solve_sudoku(self):
+        print('Attempting simple solve...')
+        while not self.solved:
+            modified = self.simple_solve()
+            self.verify_grid()
+            if not modified:
+                break
+            else:
+                print('Algorithm loop...')
+        if self.solved:
+            print('Sudoku solved.')
+        elif self.filled:
+            print('Unrecoverable (misfilled)')
+            sys.exit(0)
         else:
-            return False
-
-
-
-
-
-    def simple_missing_solve(self):
-
-        any_mods = False
-        for i in range(0,9):
-            missing = find_missing(self.rows[i])
-            if len(missing) == 1:
-                np.place(self.rows[i], self.rows[i] == 0, missing[0])
-                any_mods = True
-            elif len(missing) > 1:
-                print(f'Row {i+1} too complex')
-
-            missing = find_missing(self.cols[i])
-            if len(missing) == 1:
-                np.place(self.cols[i], self.cols[i] == 0, missing[0])
-                any_mods = True
-            elif len(missing) > 1:
-                print(f'Column {i+1} too complex')
-
-            missing = find_missing(self.regions[i])
-            if len(missing) == 1:
-                np.place(self.regions[i], self.regions[i] == 0, missing[0])
-                any_mods = True
-            elif len(missing) > 1:
-                print(f'Region {self.letters[i]} too complex')
-
-        if self.verify_grid():
-            return True
-        elif any_mods:
-            print('Modifications made, repeating simple solve')
-            self.simple_missing_solve()
-        else:
-            return any_mods
+            print('Unsolvable by simple solve.')
 
 
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
-    sud.new_simple_solve()
+    print(sud)
+    sud.solve_sudoku()
     print(sud)
