@@ -6,6 +6,7 @@ grid_key = {
     (1,0): 'D', (1,1): 'E', (1,2): 'F',
     (2,0): 'G', (2,1): 'H', (2,2): 'I'
 }
+cells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
 
 
 class Slot:
@@ -114,7 +115,7 @@ class Sudoku:
                     row_sum += slot.value
                 if slot.col == i:
                     col_sum += slot.value
-                if slot.cell == list(grid_key.values())[i]:
+                if slot.cell == cells[i]:
                     cell_sum += slot.value
             sums.extend([row_sum, col_sum, cell_sum])
         if all(sum == 45 for sum in sums):
@@ -135,11 +136,14 @@ class Sudoku:
 
         return modified
 
-    # def unique_candidate_solve(self):
-    #     modified = False
-#
-        # for i in range(9):
-        #
+    def unique_candidate_solve(self):
+
+        for i in range(9):
+            cell_slots = []
+            for slot in self.grid:
+                if slot.cell == cells[i]:
+                    slot.value = i
+
 
     def solve_sudoku(self):
         print('Attempting trivial solve...')
@@ -162,5 +166,5 @@ class Sudoku:
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
     print(sud)
-    sud.solve_sudoku()
+    sud.unique_candidate_solve()
     print(sud)
