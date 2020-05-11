@@ -8,6 +8,28 @@ grid_key = {
     (2,0): 'G', (2,1): 'H', (2,2): 'I'
 }
 cells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+horiz_cells = {
+    'A': ['B'],
+    'B': ['A', 'C'],
+    'C': ['B'],
+    'D': ['E'],
+    'E': ['D', 'F'],
+    'F': ['E'],
+    'G': ['H'],
+    'H': ['G', 'I'],
+    'I': ['H']
+}
+vert_cells = {
+    'A': ['D'],
+    'B': ['E'],
+    'C': ['F'],
+    'D': ['A', 'G'],
+    'E': ['B', 'H'],
+    'F': ['C', 'I'],
+    'G': ['D'],
+    'H': ['E'],
+    'I': ['F']
+}
 
 
 def check_equal(iterator):
@@ -43,6 +65,10 @@ class Slot:
         self.impossibles = set()
         self.possibles = set()
 
+        if self.value != 0:
+            self.possibles.add(self.value)
+            self.impossibles.update([x for x in range(1,10) if x != self.value])
+
     def update(self, value):
         self.modified = True
         self.value = value
@@ -60,9 +86,20 @@ class Slot:
 
     def update_possibles(self):
         self.possibles = set()
+        if self.value != 0:
+            self.possibles = set([self.value])
+            return
         for i in range(1,10):
             if i not in self.impossibles:
                 self.possibles.add(i)
+
+    def solve(self):
+        if len(self.possibles) == 1 and self.value == 0:
+            self.update(list(self.possibles)[0])
+            print(f'Solving slot ({self.col}, {self.row})')
+            return True
+        else:
+            return False
 
 
 class Sudoku:
@@ -145,8 +182,7 @@ class Sudoku:
                         slot.impossibles.add(neighbor.value)
 
                 slot.update_possibles()
-                if len(slot.possibles) == 1:
-                    slot.update(list(slot.possibles)[0])
+                if slot.solve():
                     modified = True
 
         return modified
@@ -167,37 +203,47 @@ class Sudoku:
                 if slot.col == i:
                     col_slots.append(slot)
 
-            for j in range(1,10):
+            for value in range(1,10):
                 for list in [cell_slots, row_slots, col_slots]:
-                    if j not in [x.value for x in list]:
-                        possibles_list = [x for x in list if j in x.possibles]
-                        if len(possibles_list) == 1:
-                            possibles_list[0].update(j)
-                            modified = True
+                    if value in [x.value for x in list]:
+                        need_updating = [s for s in list if s.value == 0]
+                        for slot in need_updating:
+                            slot.impossibles.add(value)
+
+            for slot in self.grid:
+                slot.update_possibles()
+                if slot.solve():
+                    modified = True
 
         return modified
 
     def block_interaction_solve(self):
-        force_rows = {
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: [],
-            7: [],
-            8: [],
-            9: []
-        }
-        for i in range(1,10):
-            for cell in cells:
+        modified = False
+
+        for cell in cells:
+            for value in range(1,10):
                 cell_force_row = []
+                cell_force_col = []
                 for slot in self.grid:
-                    if i in slot.possibles and slot.cell == cell:
+                    if value in slot.possibles and slot.cell == cell:
                         cell_force_row.append(slot.row)
+                        cell_force_col.append(slot.col)
+
                 if check_equal(cell_force_row):
-                    force_rows[i].append(cell_force_row[0])
-        print(force_rows)
+                    for slot in self.grid:
+                        if slot.row == cell_force_row[0] and slot.value == 0 and slot.cell in horiz_cells[cell]:
+                            slot.impossibles.add(value)
+                if check_equal(cell_force_col):
+                    for slot in self.grid:
+                        if slot.row == cell_force_row[0] and slot.value == 0 and slot.cell in vert_cells[cell]:
+                            slot.impossibles.add(value)
+
+        for slot in self.grid:
+            slot.update_possibles()
+            if slot.solve():
+                modified = True
+
+        return modified
 
     def trivial_loop(self):
         while not self.solved:
@@ -220,13 +266,10 @@ class Sudoku:
     def unique_candidate_loop(self):
         while not self.solved:
             modified = self.unique_candidate_solve()
-            if modified:
-                print('UC found position...')
-            else:
-                print('No unique candidate.')
             self.verify_grid()
 
             if not modified:
+                print('No unique candidate.')
                 break
             elif self.trivial_loop():
                 break
@@ -235,7 +278,24 @@ class Sudoku:
             print('Sudoku solved.')
             return True
         else:
-            print('Unsolvable by unique candidate.')
+            return False
+
+    def block_interaction_loop(self):
+        while not self.solved:
+            modified = self.block_interaction_solve()
+            self.verify_grid()
+
+            if not modified:
+                print('No useful block interactions.')
+                break
+            elif self.unique_candidate_loop():
+                break
+
+        if self.solved:
+            print('Sudoku solved.')
+            return True
+        else:
+            print('Unsolvable by block interaction.')
             return False
 
     def solve_sudoku(self):
@@ -244,7 +304,8 @@ class Sudoku:
             print('Attempting unique candidate solve...')
             if not self.unique_candidate_loop():
                 print('Attempting block interaction solve...')
-                self.block_interaction_solve()
+                if not self.block_interaction_loop():
+                    print('Giving up.')
 
 
 if __name__ == '__main__':
