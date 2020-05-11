@@ -1,5 +1,6 @@
 import sys
 import math
+from itertools import islice
 
 grid_key = {
     (0,0): 'A', (0,1): 'B', (0,2): 'C',
@@ -33,13 +34,16 @@ class Slot:
         self.modified = True
         self.value = value
 
-    def __repr__(self):
+    def colored_value(self):
         if self.modified:
             return f'{bcolors.OKGREEN}{str(self.value)}{bcolors.ENDC}'
         elif self.value == 0:
             return f'{bcolors.FAIL}X{bcolors.ENDC}'
         else:
             return str(self.value)
+
+    def __repr__(self):
+        return self.colored_value()
 
     def update_possibles(self, grid):
         row_imposs = []
@@ -73,6 +77,21 @@ class Sudoku:
             row.append(Slot(input[i], (row_num, i)))
         return row
 
+    def pretty_grid(self):
+        to_print = []
+        for i in range(len(self.grid)):
+            to_print.append(self.grid[i].colored_value())
+
+            if (i+1) % 27 == 0 and i != 80:
+                to_print.append('\n------+-------+-------\n')
+            elif (i+1) % 9 == 0:
+                to_print.append('\n')
+            elif (i + 1) % 3 == 0:
+                to_print.append(' | ')
+            else:
+                to_print.append(' ')
+        return ''.join(to_print)
+
     def __repr__(self):
         return '\n' + self.pretty_grid() +\
                 f'\n\nCorrect: {self.solved}, Filled: {self.filled}'
@@ -87,11 +106,6 @@ class Sudoku:
                 i += 1
 
         self.solved = self.verify_grid()
-
-    def pretty_grid(self):
-        print_grid = [x.__repr__() for x in self.grid]
-
-        return print_grid
 
     def verify_grid(self):
         if all(slot.value != 0 for slot in self.grid):
@@ -206,6 +220,4 @@ if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
     print(sud)
     sud.solve_sudoku()
-    for slot in sud.grid:
-        print(slot)
     print(sud)
