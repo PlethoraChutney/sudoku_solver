@@ -9,6 +9,17 @@ grid_key = {
 cells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 class Slot:
     def __init__(self, value, index):
         self.value = int(value)
@@ -16,9 +27,19 @@ class Slot:
         self.row = index[0]
         self.col = index[1]
         self.cell = grid_key[(math.floor(index[0]/3), math.floor(index[1]/3))]
+        self.modified = False
+
+    def update(self, value):
+        self.modified = True
+        self.value = value
 
     def __repr__(self):
-        return str(self.value)
+        if self.modified:
+            return f'{bcolors.OKGREEN}{str(self.value)}{bcolors.ENDC}'
+        elif self.value == 0:
+            return f'{bcolors.FAIL}X{bcolors.ENDC}'
+        else:
+            return str(self.value)
 
     def update_possibles(self, grid):
         row_imposs = []
@@ -131,40 +152,85 @@ class Sudoku:
         for slot in self.grid:
             slot.update_possibles(self.grid)
             if len(slot.possibles) == 1:
-                slot.value = slot.possibles[0]
+                slot.update(slot.possibles[0])
                 modified = True
 
         return modified
 
     def unique_candidate_solve(self):
+        modified = False
 
         for i in range(9):
             cell_slots = []
+            row_slots = []
+            col_slots = []
+
             for slot in self.grid:
                 if slot.cell == cells[i]:
-                    slot.value = i
+                    cell_slots.append(slot)
+                if slot.row == i:
+                    row_slots.append(slot)
+                if slot.col == i:
+                    col_slots.append(slot)
 
+            for j in range(1,10):
+                for list in [cell_slots, row_slots, col_slots]:
+                    if j not in [x.value for x in list]:
+                        possibles_list = [x for x in list if j in x.possibles]
+                        if len(possibles_list) == 1:
+                            possibles_list[0].update(j)
+                            modified = True
 
-    def solve_sudoku(self):
-        print('Attempting trivial solve...')
+        return modified
+
+    def trivial_loop(self):
         while not self.solved:
             modified = self.single_possibility_solve()
             self.verify_grid()
             if not modified:
                 break
             else:
-                print('Algorithm loop...')
+                print('TS algorithm loop...')
         if self.solved:
             print('Sudoku solved.')
+            return(True)
         elif self.filled:
             print('Unrecoverable (misfilled)')
-            sys.exit(0)
+            return(False)
         else:
-            print('Unsolvable by trivial solve.')
+            print('No trivial solution.')
+            return(False)
+
+    def unique_candidate_loop(self):
+        while not self.solved:
+            modified = self.unique_candidate_solve()
+            if modified:
+                print('UC found position...')
+            else:
+                print('No unique candidate.')
+            self.verify_grid()
+
+            if not modified:
+                break
+            elif self.trivial_loop():
+                break
+
+        if self.solved:
+            print('Sudoku solved.')
+        else:
+            print('Unsolvable by unique candidate.')
+
+    def solve_sudoku(self):
+        print('Attempting trivial solve...')
+        if not self.trivial_loop():
+            print('Attempting unique candidate solve...')
+            self.unique_candidate_loop()
 
 
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
     print(sud)
-    sud.unique_candidate_solve()
+    sud.solve_sudoku()
+    for slot in sud.grid:
+        print(slot)
     print(sud)
