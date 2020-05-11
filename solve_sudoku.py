@@ -7,6 +7,7 @@ grid_key = {
     (2,0): 'G', (2,1): 'H', (2,2): 'I'
 }
 
+
 class Slot:
     def __init__(self, value, index):
         self.value = int(value)
@@ -113,7 +114,7 @@ class Sudoku:
                     row_sum += slot.value
                 if slot.col == i:
                     col_sum += slot.value
-                if slot.cell == self.cells[i]:
+                if slot.cell == list(grid_key.values())[i]:
                     cell_sum += slot.value
             sums.extend([row_sum, col_sum, cell_sum])
         if all(sum == 45 for sum in sums):
@@ -160,4 +161,6 @@ class Sudoku:
 
 if __name__ == '__main__':
     sud = Sudoku(sys.argv[1])
+    print(sud)
+    sud.solve_sudoku()
     print(sud)
