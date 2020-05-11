@@ -89,33 +89,8 @@ class Sudoku:
         self.solved = self.verify_grid()
 
     def pretty_grid(self):
-        string_grid = [str(x.value) for x in self.grid]
-        string_grid = ''.join(string_grid)
+        print_grid = [x.__repr__() for x in self.grid]
 
-        pretty_grid = [
-            ''.join(string_grid[0:9]),
-            ''.join(string_grid[9:18]),
-            ''.join(string_grid[18:27]),
-            ''.join(string_grid[27:36]),
-            ''.join(string_grid[36:45]),
-            ''.join(string_grid[45:54]),
-            ''.join(string_grid[54:63]),
-            ''.join(string_grid[63:72]),
-            ''.join(string_grid[72:81])
-        ]
-
-        print_grid = []
-        for i in range(0, 9):
-            pretty_grid_row = [str(x).replace('0', 'X') for x in pretty_grid[i]]
-            pretty_grid_row.insert(6, '|')
-            pretty_grid_row.insert(3, '|')
-            pretty_grid_row = ' '.join(pretty_grid_row)
-            print_grid.append(pretty_grid_row)
-
-            if i == 2 or i == 5:
-                print_grid.append('------+-------+-------')
-
-        print_grid = '\n'.join(print_grid)
         return print_grid
 
     def verify_grid(self):
