@@ -10,6 +10,17 @@ grid_key = {
 cells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
 
 
+def check_equal(iterator):
+    if len(iterator) == 0:
+        return False
+    iterator = iter(iterator)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return True
+    return all(first == rest for rest in iterator)
+
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -29,6 +40,8 @@ class Slot:
         self.col = index[1]
         self.cell = grid_key[(math.floor(index[0]/3), math.floor(index[1]/3))]
         self.modified = False
+        self.impossibles = set()
+        self.possibles = set()
 
     def update(self, value):
         self.modified = True
@@ -45,28 +58,11 @@ class Slot:
     def __repr__(self):
         return self.colored_value()
 
-    def update_possibles(self, grid):
-        row_imposs = []
-        col_imposs = []
-        cell_imposs = []
-        self.impossibles = []
-        self.possibles = []
-
-        if self.value == 0:
-            for slot in grid:
-                if slot.row == self.row and slot.value != 0:
-                    row_imposs.append(slot.value)
-                if slot.col == self.col and slot.value != 0:
-                    col_imposs.append(slot.value)
-                if slot.cell == self.cell and slot.value != 0:
-                    cell_imposs.append(slot.value)
-            self.impossibles.extend(row_imposs)
-            self.impossibles.extend(col_imposs)
-            self.impossibles.extend(cell_imposs)
-            self.impossibles = set(self.impossibles)
-            for i in range(1,10):
-                if i not in self.impossibles:
-                    self.possibles.append(i)
+    def update_possibles(self):
+        self.possibles = set()
+        for i in range(1,10):
+            if i not in self.impossibles:
+                self.possibles.add(i)
 
 
 class Sudoku:
@@ -139,9 +135,18 @@ class Sudoku:
         modified = False
 
         for slot in self.grid:
-            slot.update_possibles(self.grid)
+            if slot.value == 0:
+                for neighbor in self.grid:
+                    if neighbor.row == slot.row and neighbor.value != 0:
+                        slot.impossibles.add(neighbor.value)
+                    if neighbor.col == slot.col and neighbor.value != 0:
+                        slot.impossibles.add(neighbor.value)
+                    if neighbor.cell == slot.cell and neighbor.value != 0:
+                        slot.impossibles.add(neighbor.value)
+
+            slot.update_possibles()
             if len(slot.possibles) == 1:
-                slot.update(slot.possibles[0])
+                slot.update(list(slot.possibles)[0])
                 modified = True
 
         return modified
@@ -171,6 +176,28 @@ class Sudoku:
                             modified = True
 
         return modified
+
+    def block_interaction_solve(self):
+        force_rows = {
+            1: [],
+            2: [],
+            3: [],
+            4: [],
+            5: [],
+            6: [],
+            7: [],
+            8: [],
+            9: []
+        }
+        for i in range(1,10):
+            for cell in cells:
+                cell_force_row = []
+                for slot in self.grid:
+                    if i in slot.possibles and slot.cell == cell:
+                        cell_force_row.append(slot.row)
+                if check_equal(cell_force_row):
+                    force_rows[i].append(cell_force_row[0])
+        print(force_rows)
 
     def trivial_loop(self):
         while not self.solved:
@@ -206,14 +233,18 @@ class Sudoku:
 
         if self.solved:
             print('Sudoku solved.')
+            return True
         else:
             print('Unsolvable by unique candidate.')
+            return False
 
     def solve_sudoku(self):
         print('Attempting trivial solve...')
         if not self.trivial_loop():
             print('Attempting unique candidate solve...')
-            self.unique_candidate_loop()
+            if not self.unique_candidate_loop():
+                print('Attempting block interaction solve...')
+                self.block_interaction_solve()
 
 
 if __name__ == '__main__':
