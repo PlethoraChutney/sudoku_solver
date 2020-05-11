@@ -144,10 +144,10 @@ class Sudoku:
                     if neighbor.cell == slot.cell and neighbor.value != 0:
                         slot.impossibles.add(neighbor.value)
 
-            slot.update_possibles()
-            if len(slot.possibles) == 1:
-                slot.update(list(slot.possibles)[0])
-                modified = True
+                slot.update_possibles()
+                if len(slot.possibles) == 1:
+                    slot.update(list(slot.possibles)[0])
+                    modified = True
 
         return modified
 
