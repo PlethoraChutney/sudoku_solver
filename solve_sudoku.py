@@ -88,6 +88,7 @@ class Slot:
         self.possibles = set()
         if self.value != 0:
             self.possibles = set([self.value])
+            self.impossibles = set([x for x in range(10) if x != self.value])
             return
         for i in range(1,10):
             if i not in self.impossibles:
@@ -196,6 +197,7 @@ class Sudoku:
             col_slots = []
 
             for slot in self.grid:
+                slot.update_possibles()
                 if slot.cell == cells[i]:
                     cell_slots.append(slot)
                 if slot.row == i:
@@ -205,10 +207,12 @@ class Sudoku:
 
             for value in range(1,10):
                 for list in [cell_slots, row_slots, col_slots]:
-                    if value in [x.value for x in list]:
-                        need_updating = [s for s in list if s.value == 0]
-                        for slot in need_updating:
-                            slot.impossibles.add(value)
+                    if value not in [x.value for x in list]:
+                        possibles_list = [x for x in list if value in x.possibles]
+                        if len(possibles_list) == 1:
+                            possibles_list[0].update(value)
+                            possibles_list[0].update_possibles()
+                            modified = True
 
             for slot in self.grid:
                 slot.update_possibles()
@@ -313,3 +317,5 @@ if __name__ == '__main__':
     print(sud)
     sud.solve_sudoku()
     print(sud)
+    for slot in sud.grid:
+        print(slot.col, slot.row, slot.possibles)
