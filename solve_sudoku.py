@@ -303,13 +303,19 @@ class Sudoku:
             return False
 
     def solve_sudoku(self):
-        print('Attempting trivial solve...')
-        if not self.trivial_loop():
-            print('Attempting unique candidate solve...')
-            if not self.unique_candidate_loop():
-                print('Attempting block interaction solve...')
-                if not self.block_interaction_loop():
-                    print('Giving up.')
+        i = 0
+        while i < 5:
+            print('Attempting trivial solve...')
+            if not self.trivial_loop():
+                print('Attempting unique candidate solve...')
+                if not self.unique_candidate_loop():
+                    print('Attempting block interaction solve...')
+                    self.block_interaction_loop()
+            if self.solved:
+                break
+            i += 1
+        if not self.solved:
+            print('Giving up.')
 
 
 if __name__ == '__main__':
@@ -317,5 +323,3 @@ if __name__ == '__main__':
     print(sud)
     sud.solve_sudoku()
     print(sud)
-    for slot in sud.grid:
-        print(slot.col, slot.row, slot.possibles)
