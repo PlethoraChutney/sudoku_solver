@@ -1,6 +1,5 @@
 import sys
 import math
-from itertools import islice
 
 grid_key = {
     (0,0): 'A', (0,1): 'B', (0,2): 'C',
@@ -97,7 +96,6 @@ class Slot:
     def solve(self):
         if len(self.possibles) == 1 and self.value == 0:
             self.update(list(self.possibles)[0])
-            print(f'Solving slot ({self.col}, {self.row})')
             return True
         else:
             return False
@@ -235,11 +233,13 @@ class Sudoku:
 
                 if check_equal(cell_force_row):
                     for slot in self.grid:
-                        if slot.row == cell_force_row[0] and slot.value == 0 and slot.cell in horiz_cells[cell]:
+                        if slot.row == cell_force_row[0] and slot.value == 0\
+                                and slot.cell in horiz_cells[cell]:
                             slot.impossibles.add(value)
                 if check_equal(cell_force_col):
                     for slot in self.grid:
-                        if slot.row == cell_force_row[0] and slot.value == 0 and slot.cell in vert_cells[cell]:
+                        if slot.row == cell_force_row[0] and slot.value == 0\
+                                and slot.cell in vert_cells[cell]:
                             slot.impossibles.add(value)
 
         for slot in self.grid:
@@ -250,22 +250,23 @@ class Sudoku:
         return modified
 
     def trivial_loop(self):
+        modified = False
         while not self.solved:
-            modified = self.single_possibility_solve()
+            single_loop_modified = self.single_possibility_solve()
+            if not modified:
+                modified = single_loop_modified
             self.verify_grid()
             if not modified:
-                break
+                print('No trivials found.')
+                return modified
             else:
-                print('TS algorithm loop...')
-        if self.solved:
-            print('Sudoku solved.')
-            return(True)
-        elif self.filled:
+                print('Trivials found.')
+                break
+        if not self.solved and self.filled:
             print('Unrecoverable (misfilled)')
-            return(False)
+            sys.exit(1)
         else:
-            print('No trivial solution.')
-            return(False)
+            return modified
 
     def unique_candidate_loop(self):
         while not self.solved:
@@ -275,14 +276,13 @@ class Sudoku:
             if not modified:
                 print('No unique candidate.')
                 break
-            elif self.trivial_loop():
-                break
+            else:
+                print('UCs found, attempting TS...')
+                if not self.trivial_loop():
+                    break
 
         if self.solved:
-            print('Sudoku solved.')
-            return True
-        else:
-            return False
+            return modified
 
     def block_interaction_loop(self):
         while not self.solved:
@@ -292,30 +292,35 @@ class Sudoku:
             if not modified:
                 print('No useful block interactions.')
                 break
-            elif self.unique_candidate_loop():
-                break
+            else:
+                print('BIs found, attempting UC...')
+                if not self.unique_candidate_loop():
+                    break
 
         if self.solved:
-            print('Sudoku solved.')
-            return True
-        else:
-            print('Unsolvable by block interaction.')
-            return False
+            return modified
 
     def solve_sudoku(self):
-        i = 0
-        while i < 5:
+        modified = False
+        while not self.solved:
+            modified = False
+            print('Beginning full loop')
             print('Attempting trivial solve...')
-            if not self.trivial_loop():
+            if self.trivial_loop():
+                modified = True
+            if not self.solved:
                 print('Attempting unique candidate solve...')
-                if not self.unique_candidate_loop():
-                    print('Attempting block interaction solve...')
-                    self.block_interaction_loop()
-            if self.solved:
+                if self.unique_candidate_loop():
+                    modified = True
+            if not self.solved:
+                print('Attempting block interaction solve...')
+                if self.block_interaction_loop():
+                    modified = True
+            if not modified:
+                print('Not modified since last full loop. Giving up.')
                 break
-            i += 1
-        if not self.solved:
-            print('Giving up.')
+        if self.solved:
+            print('Sudoku solved.')
 
 
 if __name__ == '__main__':
