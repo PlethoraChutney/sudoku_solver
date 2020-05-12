@@ -56,6 +56,7 @@ class Slot:
         self.col = index[1]
         self.cell = grid_key[(math.floor(index[0]/3), math.floor(index[1]/3))]
         self.modified = False
+        # use sets, not lists, because we don't want duplicates (length has meaning)
         self.impossibles = set()
         self.possibles = set()
 
@@ -80,14 +81,15 @@ class Slot:
         return self.colored_value()
 
     def update_possibles(self):
+        # easier to define impossibles and deduce possibles than maintain two sets
         self.possibles = set()
         if self.value != 0:
             self.possibles = set([self.value])
             self.impossibles = set([x for x in range(10) if x != self.value])
-            return
-        for i in range(1,10):
-            if i not in self.impossibles:
-                self.possibles.add(i)
+        else:
+            for i in range(1,10):
+                if i not in self.impossibles:
+                    self.possibles.add(i)
 
     def solve(self):
         if len(self.possibles) == 1 and self.value == 0:
@@ -191,6 +193,7 @@ class Sudoku:
         # checks if a subset only have one valid slot for a specific value
         modified = False
 
+        # gather a list of cells, rows, and columns
         for i in range(9):
             cell_slots = []
             row_slots = []
@@ -205,10 +208,14 @@ class Sudoku:
                 if slot.col == i:
                     col_slots.append(slot)
 
+            # iterating over every possible value
             for value in range(1,10):
+                # check each subset for that value
                 for list in [cell_slots, row_slots, col_slots]:
+                    # if it's not there, find which slots could hold it
                     if value not in [x.value for x in list]:
                         possibles_list = [x for x in list if value in x.possibles]
+                        # if there's only one, that's where it goes
                         if len(possibles_list) == 1:
                             possibles_list[0].update(value)
                             possibles_list[0].update_possibles()
@@ -226,6 +233,8 @@ class Sudoku:
         # which would make it an illegal row/col for adjacent blocks in that direction
         modified = False
 
+        # find cells with a "forced" row or column,in which all possible slots for
+        # a value are in the same row or column
         for cell in cells:
             for value in range(1,10):
                 cell_force_row = []
@@ -235,11 +244,16 @@ class Sudoku:
                         cell_force_row.append(slot.row)
                         cell_force_col.append(slot.col)
 
+                # if the cell has a forced row
                 if check_equal(cell_force_row):
+                    # for every slot in the grid which is in that row, not currently
+                    # filled, and is in a horizontally-adjacent cell
                     for slot in self.grid:
                         if slot.row == cell_force_row[0] and slot.value == 0\
                                 and slot.cell in horiz_cells[cell]:
+                            # that value is impossible
                             slot.impossibles.add(value)
+                # same for columns
                 if check_equal(cell_force_col):
                     for slot in self.grid:
                         if slot.row == cell_force_row[0] and slot.value == 0\
