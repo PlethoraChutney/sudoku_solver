@@ -43,14 +43,9 @@ def check_equal(iterator):
 
 
 class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 class Slot:
@@ -69,6 +64,7 @@ class Slot:
             self.impossibles.update([x for x in range(1,10) if x != self.value])
 
     def update(self, value):
+        # using update() sets a color for ones the algorithm solves
         self.modified = True
         self.value = value
 
@@ -114,6 +110,8 @@ class Sudoku:
         for i in range(len(self.grid)):
             to_print.append(self.grid[i].colored_value())
 
+            # dumb hardcoding, would be better to do this modular for arbitrary
+            # sudokus haha
             if (i+1) % 27 == 0 and i != 80:
                 to_print.append('\n------+-------+-------\n')
             elif (i+1) % 9 == 0:
@@ -140,6 +138,8 @@ class Sudoku:
         self.solved = self.verify_grid()
 
     def verify_grid(self):
+        # it's technically possible to make 45 from numbers other than the correct
+        # 1--9, but that would be obvious
         if all(slot.value != 0 for slot in self.grid):
             self.filled = True
         else:
@@ -168,7 +168,7 @@ class Sudoku:
         return self.solved
 
     def trivial_solve(self):
-        # does a given slot only have one valid value
+        # check if a given slot has only have one valid value
         modified = False
 
         for slot in self.grid:
@@ -188,7 +188,7 @@ class Sudoku:
         return modified
 
     def unique_candidate_solve(self):
-        # does a subset only have one valid slot for a specific value
+        # checks if a subset only have one valid slot for a specific value
         modified = False
 
         for i in range(9):
