@@ -167,7 +167,8 @@ class Sudoku:
 
         return self.solved
 
-    def single_possibility_solve(self):
+    def trivial_solve(self):
+        # does a given slot only have one valid value
         modified = False
 
         for slot in self.grid:
@@ -187,6 +188,7 @@ class Sudoku:
         return modified
 
     def unique_candidate_solve(self):
+        # does a subset only have one valid slot for a specific value
         modified = False
 
         for i in range(9):
@@ -220,6 +222,8 @@ class Sudoku:
         return modified
 
     def block_interaction_solve(self):
+        # check if one block forces a number to be in a specific row/col in that block
+        # which would make it an illegal row/col for adjacent blocks in that direction
         modified = False
 
         for cell in cells:
@@ -252,7 +256,7 @@ class Sudoku:
     def trivial_loop(self):
         modified = False
         while not self.solved:
-            single_loop_modified = self.single_possibility_solve()
+            single_loop_modified = self.trivial_solve()
             if not modified:
                 modified = single_loop_modified
             self.verify_grid()
